@@ -6,9 +6,8 @@ import { UserProvider } from './contexts/UserContext';
 import BottomNav from './components/BottomNav';
 import MapView from './components/MapView';
 import Profile from './components/Profile';
-import Matches from './components/Matches';
+import SearchMatches from './components/SearchMatches';
 import Favorites from './components/Favorites';
-import UserMatches from './components/UserMatches';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -50,9 +49,11 @@ function App() {
               <Routes>
                 <Route path="/" element={<MapView />} />
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/matches" element={<Matches />} />
+                <Route path="/search" element={<SearchMatches />} />
                 <Route path="/favorites" element={<Favorites />} />
-                <Route path="/user-matches" element={<UserMatches />} />
+                {/* Legacy routes for backward compatibility */}
+                <Route path="/matches" element={<SearchMatches />} />
+                <Route path="/user-matches" element={<SearchMatches />} />
               </Routes>
             </div>
             <BottomNav />

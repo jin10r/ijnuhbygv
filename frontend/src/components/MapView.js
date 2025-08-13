@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useTelegram } from '../contexts/TelegramContext';
 import { apiService } from '../services/api';
@@ -22,27 +22,41 @@ const MapView = () => {
   const { user: telegramUser, hapticFeedback, showAlert } = useTelegram();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [map, setMap] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
-  const [mapInitialized, setMapInitialized] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    propertyType: '',
+    rooms: '',
+    minPrice: '',
+    maxPrice: '',
+    metroStation: ''
+  });
+  
+  // Use refs to persist map state
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
+  const mapInitializedRef = useRef(false);
 
   const initMap = useCallback(() => {
-    if (!user || mapInitialized) return;
+    if (!user || mapInitializedRef.current) return;
 
-    // Get metro station coordinates (for now, use user location as fallback)
-    // In a real app, you'd have a metro stations database with coordinates
+    // Get metro station coordinates
     const metroCoordinates = getMetroStationCoordinates(user.metro_station) || [user.latitude, user.longitude];
-
     
+    // Clear existing map if it exists
+    if (mapRef.current) {
+      mapRef.current.destroy();
+      mapRef.current = null;
+    }
 
     const mapInstance = new window.ymaps.Map('map', {
       center: metroCoordinates,
-      zoom: 13, // Closer zoom for metro station view
+      zoom: 13,
       controls: ['zoomControl', 'fullscreenControl', 'geolocationControl']
     });
 
-        setMap(mapInstance);
-    setMapInitialized(true);
+    mapRef.current = mapInstance;
+    mapInitializedRef.current = true;
 
     // Add metro station marker
     const metroPlacemark = new window.ymaps.Placemark(
@@ -88,20 +102,11 @@ const MapView = () => {
     mapInstance.geoObjects.add(circle);
   }, [user]);
 
-  // Initialize Yandex Maps
+  // Initialize Yandex Maps only once
   useEffect(() => {
     if (!user) return;
     
-    // Reset map initialization flag when key parameters change
-    setMapInitialized(false);
-    
     const loadMap = async () => {
-      // Destroy existing map if it exists
-      if (map) {
-        map.destroy();
-        setMap(null);
-      }
-      
       if (!window.ymaps) {
         const script = document.createElement('script');
         script.src = `https://api-maps.yandex.ru/2.1/?apikey=${process.env.REACT_APP_YANDEX_MAPS_API_KEY || 'your_api_key'}&lang=ru_RU`;
@@ -115,30 +120,24 @@ const MapView = () => {
       }
     };
 
-    // Small delay to ensure DOM is ready and state is updated
-    setTimeout(loadMap, 200);
+    if (!mapInitializedRef.current) {
+      loadMap();
+    }
 
-    // Cleanup function to destroy map on unmount
+    // Cleanup function
     return () => {
-      if (map) {
-        map.destroy();
-        setMap(null);
-        setMapInitialized(false);
-      }
+      // Don't destroy map on component unmount to preserve state
     };
-  }, [user?.metro_station, user?.search_radius]); // Only re-initialize when metro station or radius changes
+  }, [user, initMap]);
 
-    const addPropertyMarkersToMap = useCallback((propertiesToAdd) => {
-    if (!map) return;
+  const addPropertyMarkersToMap = useCallback((propertiesToAdd) => {
+    if (!mapRef.current) return;
 
     // Clear existing property markers
-    const oldMarkers = [];
-    map.geoObjects.each(obj => {
-      if (obj.properties && obj.properties.get('type') === 'property') {
-        oldMarkers.push(obj);
-      }
+    markersRef.current.forEach(marker => {
+      mapRef.current.geoObjects.remove(marker);
     });
-    oldMarkers.forEach(marker => map.geoObjects.remove(marker));
+    markersRef.current = [];
 
     // Add new markers
     propertiesToAdd.forEach(property => {
@@ -159,9 +158,8 @@ const MapView = () => {
                   Подробнее
                 </button>
                 <button onclick="window.toggleFavorite('${property.id}')" 
-                        style="background: ${property.is_liked ? '#ff3333' : 'var(--tg-theme-secondary-bg-color, #242f3d)'}; color: ${property.is_liked ? '#ffffff' : 'var(--tg-theme-text-color, #ffffff)'}; border: 1px solid ${property.is_liked ? '#ff3333' : 'var(--tg-theme-text-color, #ffffff)'}; padding: 8px 12px; border-radius: 4px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                  ${property.is_liked ? '❤️' : '🤍'}
-                  <span>${property.is_liked ? 'В избранном' : 'В избранное'}</span>
+                        style="background: ${property.is_liked ? '#ff4444' : 'var(--tg-theme-button-color, #2481cc)'}; color: var(--tg-theme-button-text-color, #ffffff); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; flex: 1;">
+                  ${property.is_liked ? '❤️ Убрать' : '🤍 В избранное'}
                 </button>
               </div>
             </div>
@@ -173,173 +171,158 @@ const MapView = () => {
           preset: property.is_liked ? 'islands#redCircleDotIcon' : 'islands#greenCircleDotIcon'
         }
       );
-      map.geoObjects.add(placemark);
+      
+      mapRef.current.geoObjects.add(placemark);
+      markersRef.current.push(placemark);
     });
-  }, [map]);
+  }, []);
 
   const fetchProperties = useCallback(async () => {
-        if (!telegramUser || !hasProfile || !user) return;
+    if (!telegramUser || !hasProfile || !user) return;
 
     const cachedProperties = sessionStorage.getItem('map_properties');
     if (cachedProperties) {
       const parsedProperties = JSON.parse(cachedProperties);
       setProperties(parsedProperties);
-      console.log('Loaded properties from cache');
-      return; // Properties are loaded, useEffect below will add markers
+      return;
     }
 
     try {
       setLoading(true);
-      console.log('Fetching properties for user:', telegramUser.id);
       const data = await apiService.getProperties(telegramUser.id);
-      console.log('Received properties from API:', data.length);
       
       // Get metro station coordinates for filtering
       const metroCoordinates = getMetroStationCoordinates(user.metro_station);
-      console.log('User metro station:', user.metro_station, 'coordinates:', metroCoordinates);
-      console.log('User search radius:', user.search_radius);
-      console.log('User price range:', user.price_range_min, '-', user.price_range_max);
       
       // Filter properties by distance from metro station and price range
       const filteredProperties = data.filter(property => {
-        // Distance filter
         if (metroCoordinates) {
           const distance = calculateDistance(
             metroCoordinates[0], metroCoordinates[1],
             property.latitude, property.longitude
           );
-          console.log('Property distance from metro:', distance, 'km');
           
           if (distance > user.search_radius) {
-            console.log('Property filtered out due to distance');
             return false;
           }
         }
         
-        // Price range filter
         if (user.price_range_min && property.price < user.price_range_min) {
-          console.log('Property filtered out due to low price');
           return false;
         }
         
         if (user.price_range_max && property.price > user.price_range_max) {
-          console.log('Property filtered out due to high price');
           return false;
         }
         
         return true;
       });
       
-      console.log('Filtered properties:', filteredProperties.length);
-            setProperties(filteredProperties);
+      setProperties(filteredProperties);
       sessionStorage.setItem('map_properties', JSON.stringify(filteredProperties));
       
-      // Markers will be added by the useEffect below
     } catch (error) {
       console.error('Error fetching properties:', error);
     } finally {
       setLoading(false);
     }
-  }, [telegramUser, hasProfile, user, map]);
+  }, [telegramUser, hasProfile, user]);
+
+  // Apply filters to properties
+  const applyFilters = (propertiesToFilter, currentFilters) => {
+    let result = [...propertiesToFilter];
+    
+    if (currentFilters.propertyType) {
+      result = result.filter(p => p.property_type === currentFilters.propertyType);
+    }
+    
+    if (currentFilters.rooms) {
+      result = result.filter(p => p.rooms.toString() === currentFilters.rooms);
+    }
+    
+    if (currentFilters.minPrice) {
+      result = result.filter(p => p.price >= parseInt(currentFilters.minPrice));
+    }
+    
+    if (currentFilters.maxPrice) {
+      result = result.filter(p => p.price <= parseInt(currentFilters.maxPrice));
+    }
+    
+    if (currentFilters.metroStation) {
+      result = result.filter(p => p.metro_station === currentFilters.metroStation);
+    }
+    
+    return result;
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    const newFilters = { ...filters, [filterName]: value };
+    setFilters(newFilters);
+    
+    const filteredProperties = applyFilters(properties, newFilters);
+    addPropertyMarkersToMap(filteredProperties);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      propertyType: '',
+      rooms: '',
+      minPrice: '',
+      maxPrice: '',
+      metroStation: ''
+    });
+    addPropertyMarkersToMap(properties);
+  };
 
   useEffect(() => {
-    if (hasProfile && map) {
+    if (hasProfile && mapRef.current) {
       fetchProperties();
     }
-  }, [hasProfile, map, fetchProperties]);
+  }, [hasProfile, fetchProperties]);
 
-  // Effect to add/update markers when properties or map changes
   useEffect(() => {
-    if (map && properties.length > 0) {
-      addPropertyMarkersToMap(properties);
+    if (mapRef.current && properties.length > 0) {
+      const filteredProperties = applyFilters(properties, filters);
+      addPropertyMarkersToMap(filteredProperties);
     }
-  }, [map, properties, addPropertyMarkersToMap]);
-
-  const updateMapMarkers = useCallback((updatedProperties) => {
-    if (!map) return;
-    
-    console.log('Updating map markers with properties:', updatedProperties);
-    
-    // Update existing property markers instead of recreating them
-    map.geoObjects.each(obj => {
-      if (obj.properties && obj.properties.get('type') === 'property') {
-        // Find the corresponding property in updatedProperties
-        const propertyId = obj.properties.get('propertyId');
-        const updatedProperty = updatedProperties.find(p => p.id === propertyId);
-        
-        if (updatedProperty) {
-          // Update the marker's preset (color) based on is_liked status
-          obj.options.set('preset', updatedProperty.is_liked ? 'islands#redCircleDotIcon' : 'islands#greenCircleDotIcon');
-          
-          // Update the balloon content to reflect the new button text
-          obj.properties.set('balloonContent', `
-            <div style="padding: 10px; max-width: 300px; background: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000);">
-              <h3 style="margin: 0 0 10px 0; color: var(--tg-theme-text-color, #000000);">${updatedProperty.title}</h3>
-              <p style="margin: 0 0 5px 0; color: var(--tg-theme-hint-color, #666666);">${updatedProperty.address}</p>
-              <p style="margin: 0 0 5px 0;"><strong>Цена:</strong> ${updatedProperty.price.toLocaleString()} ₽/мес</p>
-              <p style="margin: 0 0 5px 0;"><strong>Комнат:</strong> ${updatedProperty.rooms}</p>
-              <p style="margin: 0 0 5px 0;"><strong>Площадь:</strong> ${updatedProperty.area} м²</p>
-              <p style="margin: 0 0 10px 0;"><strong>Метро:</strong> ${updatedProperty.metro_station}</p>
-              <div style="display: flex; gap: 10px;">
-                <button onclick="window.selectProperty('${updatedProperty.id}')" 
-                        style="background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; flex: 1;">
-                  Подробнее
-                </button>
-                <button onclick="window.toggleFavorite('${updatedProperty.id}')" 
-                        style="background: ${updatedProperty.is_liked ? '#ff4444' : 'var(--tg-theme-button-color, #2481cc)'}; color: var(--tg-theme-button-text-color, #ffffff); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; flex: 1;">
-                  ${updatedProperty.is_liked ? '❤️ Убрать' : '🤍 В избранное'}
-                </button>
-              </div>
-            </div>
-          `);
-        }
-      }
-    });
-    
-    console.log('Updated existing property markers');
-  }, [map]);
+  }, [properties, addPropertyMarkersToMap, filters]);
 
   const handleLikeProperty = useCallback(async (propertyId) => {
     if (!telegramUser) return;
 
     try {
-      console.log('Toggling favorite for property:', propertyId);
       hapticFeedback('impact', 'light');
       await apiService.createLike(telegramUser.id, propertyId, 'property');
       
-      // Update local state - toggle the liked status
-      let updatedProperties = [];
       setProperties(prev => {
-        updatedProperties = prev.map(p => {
+        const updated = prev.map(p => {
           if (p.id === propertyId) {
-            const newLikedStatus = !p.is_liked;
-            console.log('Updating property liked status:', p.id, 'from', p.is_liked, 'to', newLikedStatus);
-            return { ...p, is_liked: newLikedStatus };
+            return { ...p, is_liked: !p.is_liked };
           }
           return p;
         });
-        console.log('Updated properties array:', updatedProperties);
-        return updatedProperties;
+        
+        // Update session storage
+        sessionStorage.setItem('map_properties', JSON.stringify(updated));
+        
+        // Update map markers
+        const filteredProperties = applyFilters(updated, filters);
+        addPropertyMarkersToMap(filteredProperties);
+        
+        return updated;
       });
       
-      // Update map markers
-      updateMapMarkers(updatedProperties);
-      
-      // Find current property to determine message
-      const currentProperty = updatedProperties.find(p => p.id === propertyId);
+      const currentProperty = properties.find(p => p.id === propertyId);
       const message = currentProperty?.is_liked 
         ? 'Объявление удалено из избранного!' 
         : 'Объявление добавлено в избранное!';
-      console.log('Show alert message:', message);
       showAlert(message);
       
-      // Just update the properties state, map will re-render automatically
-      // Avoid calling initMap() and fetchProperties() to prevent infinite loops
     } catch (error) {
       console.error('Error toggling property favorite:', error);
       showAlert('Ошибка при изменении избранного');
     }
-  }, [telegramUser, hapticFeedback, showAlert, properties, updateMapMarkers]);
+  }, [telegramUser, hapticFeedback, showAlert, properties, filters, addPropertyMarkersToMap]);
 
   // Set up global functions for property selection and favorites
   useEffect(() => {
@@ -381,25 +364,99 @@ const MapView = () => {
     );
   }
 
+  const filteredProperties = applyFilters(properties, filters);
+
   return (
     <div className="fixed inset-0 bg-telegram-bg">
       {/* Header */}
       <div className="bg-telegram-secondary p-4 shadow-lg z-10 relative">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-xl font-bold text-telegram-text">Карта объявлений</h1>
             <div className="text-xs text-telegram-text/60 mt-1">
               📍 {user?.metro_station} • 📏 {user?.search_radius} км • 💰 {user?.price_range_min?.toLocaleString()}-{user?.price_range_max?.toLocaleString()} ₽
             </div>
           </div>
-          <div className="text-sm text-telegram-text/70">
-            Найдено: {properties.length}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                showFilters 
+                  ? 'bg-telegram-button text-white' 
+                  : 'bg-telegram-bg text-telegram-text border border-telegram-text/20'
+              }`}
+            >
+              🔍 Фильтры
+            </button>
+            <div className="text-sm text-telegram-text/70">
+              {filteredProperties.length} из {properties.length}
+            </div>
           </div>
         </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="bg-telegram-bg rounded-lg p-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Property Type Filter */}
+              <select 
+                value={filters.propertyType}
+                onChange={(e) => handleFilterChange('propertyType', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              >
+                <option value="">Тип жилья</option>
+                <option value="apartment">Квартира</option>
+                <option value="room">Комната</option>
+                <option value="studio">Студия</option>
+              </select>
+              
+              {/* Rooms Filter */}
+              <select 
+                value={filters.rooms}
+                onChange={(e) => handleFilterChange('rooms', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              >
+                <option value="">Комнат</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+            
+            {/* Price Range Filter */}
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="number"
+                placeholder="Цена от"
+                value={filters.minPrice}
+                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              />
+              <input
+                type="number"
+                placeholder="Цена до"
+                value={filters.maxPrice}
+                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              />
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm text-telegram-text/70 hover:text-telegram-text transition-colors"
+              >
+                Очистить фильтры
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Map Container - Full Screen */}
-      <div className="absolute top-16 left-0 right-0 bottom-0">
+      <div className="absolute top-32 left-0 right-0 bottom-16">
         <div id="map" className="w-full h-full">
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-telegram-bg/80 z-10">
@@ -493,39 +550,6 @@ const MapView = () => {
           </div>
         </div>
       )}
-
-      {/* Properties List */}
-      <div className="p-4">
-        <div className="grid gap-4">
-          {properties.slice(0, 5).map(property => (
-            <div
-              key={property.id}
-              className="property-card p-4 cursor-pointer"
-              onClick={() => setSelectedProperty(property)}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-telegram-text text-sm">
-                  {property.title}
-                </h3>
-                <span className="text-telegram-button font-bold text-sm">
-                  {property.price.toLocaleString()} ₽
-                </span>
-              </div>
-              <p className="text-telegram-text/70 text-xs mb-2">
-                {property.rooms} комн. • {property.area} м² • {property.metro_station}
-              </p>
-              <div className="flex justify-between items-center">
-                <span className="text-telegram-text/60 text-xs">
-                  {property.address.slice(0, 40)}...
-                </span>
-                {property.is_liked && (
-                  <span className="text-red-500 text-sm">❤️</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

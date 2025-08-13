@@ -41,8 +41,6 @@ const Profile = () => {
     }
   }, [user]);
 
-  // Removed automatic location detection - users will use metro station coordinates
-
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
     
@@ -130,6 +128,17 @@ const Profile = () => {
     setIsEditing(!isEditing);
   };
 
+  const handleSaveProfile = async () => {
+    hapticFeedback('impact', 'light');
+    try {
+      await updateUser(formData);
+      showAlert('Профиль сохранен!');
+    } catch (error) {
+      console.error('Ошибка при сохранении профиля:', error);
+      showAlert(`Ошибка: ${error.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -144,20 +153,30 @@ const Profile = () => {
       <div className="bg-telegram-secondary p-4 shadow-lg flex-shrink-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-telegram-text">Профиль</h1>
-          {hasProfile && (
-            <button
-              onClick={toggleEdit}
-              className="px-4 py-2 bg-telegram-button text-telegram-text rounded-lg hover:bg-telegram-accent transition-colors"
-            >
-              {isEditing ? 'Отмена' : 'Редактировать'}
-            </button>
-          )}
+          <div className="flex space-x-2">
+            {hasProfile && !isEditing && (
+              <button
+                onClick={handleSaveProfile}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                💾 Сохранить
+              </button>
+            )}
+            {hasProfile && (
+              <button
+                onClick={toggleEdit}
+                className="px-4 py-2 bg-telegram-button text-telegram-text rounded-lg hover:bg-telegram-accent transition-colors"
+              >
+                {isEditing ? 'Отмена' : '✏️ Редактировать'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Profile Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-md mx-auto pb-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-20">
+        <div className="max-w-md mx-auto">
 
         {/* User Info */}
         <div className="bg-telegram-secondary rounded-lg p-4 mb-6">
@@ -236,8 +255,6 @@ const Profile = () => {
                 {formData.about ? formData.about.length : 0}/200 символов
               </div>
             </div>
-
-
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -352,6 +369,20 @@ const Profile = () => {
                 </div>
 
                 <div className="flex justify-between">
+                  <span className="text-telegram-text/70">Пол:</span>
+                  <span className="text-telegram-text">
+                    {user?.gender === 'male' ? 'Мужской' : user?.gender === 'female' ? 'Женский' : 'Не указан'}
+                  </span>
+                </div>
+
+                {user?.about && (
+                  <div>
+                    <span className="text-telegram-text/70">О себе:</span>
+                    <p className="text-telegram-text mt-1">{user.about}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
                   <span className="text-telegram-text/70">Бюджет:</span>
                   <span className="text-telegram-text">
                     {user?.price_range_min?.toLocaleString()} - {user?.price_range_max?.toLocaleString()} ₽
@@ -366,6 +397,22 @@ const Profile = () => {
                   <span className="text-telegram-text">{user?.search_radius} км</span>
                 </div>
               </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => window.location.href = '/'}
+                className="bg-telegram-button/20 text-telegram-button py-3 rounded-lg font-medium hover:bg-telegram-button/30 transition-colors"
+              >
+                🗺️ Карта
+              </button>
+              <button
+                onClick={() => window.location.href = '/search'}
+                className="bg-telegram-button/20 text-telegram-button py-3 rounded-lg font-medium hover:bg-telegram-button/30 transition-colors"
+              >
+                🎲 Поиск
+              </button>
             </div>
           </div>
         )}

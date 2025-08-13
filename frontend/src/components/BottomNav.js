@@ -1,11 +1,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTelegram } from '../contexts/TelegramContext';
+import { useUser } from '../contexts/UserContext';
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { hapticFeedback } = useTelegram();
+  const { user: telegramUser, hasProfile } = useUser();
 
   const navItems = [
     {
@@ -15,16 +17,10 @@ const BottomNav = () => {
       name: 'map'
     },
     {
-      path: '/matches',
-      icon: '👥',
+      path: '/search',
+      icon: '🎲',
       label: 'Поиск',
-      name: 'matches'
-    },
-    {
-      path: '/user-matches',
-      icon: '💕',
-      label: 'Совпадения',
-      name: 'user-matches'
+      name: 'search'
     },
     {
       path: '/favorites',
@@ -34,9 +30,10 @@ const BottomNav = () => {
     },
     {
       path: '/profile',
-      icon: '👤',
+      icon: hasProfile && telegramUser?.photo_url ? telegramUser.photo_url : '👤',
       label: 'Профиль',
-      name: 'profile'
+      name: 'profile',
+      isPhoto: hasProfile && telegramUser?.photo_url
     }
   ];
 
@@ -60,7 +57,15 @@ const BottomNav = () => {
                   : 'text-telegram-text/70 hover:text-telegram-text'
               }`}
             >
-              <span className="text-lg mb-1">{item.icon}</span>
+              {item.isPhoto ? (
+                <img
+                  src={item.icon}
+                  alt="Profile"
+                  className="w-6 h-6 rounded-full mb-1"
+                />
+              ) : (
+                <span className="text-lg mb-1">{item.icon}</span>
+              )}
               <span className="text-xs font-medium">{item.label}</span>
             </button>
           );
