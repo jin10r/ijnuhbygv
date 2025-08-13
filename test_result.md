@@ -142,11 +142,10 @@
 12. **Debug Endpoint** ✅ - POST /api/users/debug - Raw data inspection
 13. **Simple Creation** ✅ - POST /api/users/simple - Alternative user creation method
 
-**🔧 CRITICAL ISSUE IDENTIFIED AND DOCUMENTED:**
-- **ngrok Configuration Problem**: The external URL in frontend/.env is misconfigured to route to localhost:80 instead of localhost:8001
-- **Impact**: Frontend cannot communicate with backend via external URL
-- **Workaround**: Internal testing successful using localhost:8001 directly
-- **Status**: Backend APIs fully functional, external routing needs main agent attention
+**🔧 CRITICAL ISSUE FIXED:**
+- ✅ **ngrok Configuration Problem**: Fixed frontend/.env to use correct internal backend URL
+- ✅ **Impact**: Frontend can now communicate with backend successfully
+- ✅ **Status**: Both frontend and backend fully functional
 
 **📊 TESTING STATISTICS:**
 - **Total Tests**: 16 comprehensive API tests
@@ -166,6 +165,54 @@
 
 **✅ BACKEND STATUS: FULLY FUNCTIONAL**
 All backend API endpoints are working correctly with proper validation, error handling, and database integration.
+
+### 🖥️ FRONTEND TESTING - MANUAL TESTING SELECTED
+
+**📋 USER CHOICE**: Manual testing selected by user
+**📊 STATUS**: Ready for manual testing - all services operational
+**🔗 ACCESS**: Application accessible via browser at http://localhost:3000
+
+**📋 MANUAL TESTING CHECKLIST:**
+
+**🎯 BASIC FUNCTIONALITY:**
+- [ ] Homepage loads correctly with Yandex Maps
+- [ ] Navigation between sections (Карта, Поиск, Избранное, Профиль)
+- [ ] Responsive design on different screen sizes
+- [ ] No JavaScript errors in browser console
+
+**👤 USER PROFILE:**
+- [ ] Create new user profile
+- [ ] Fill out all required fields (name, age, gender, preferences)
+- [ ] Set location on map
+- [ ] Save profile successfully
+- [ ] Edit existing profile
+- [ ] Validate data persistence
+
+**🔍 SEARCH FUNCTIONALITY:**
+- [ ] Search for properties near user location
+- [ ] Filter by price range
+- [ ] Filter by metro station
+- [ ] View property details
+- [ ] Properties display correctly on map
+
+**👥 ROOMMATE MATCHING:**
+- [ ] View potential roommate matches
+- [ ] Like/dislike users
+- [ ] Check match notifications
+- [ ] View matched users list
+
+**❤️ FAVORITES & LIKES:**
+- [ ] Like properties
+- [ ] View liked properties list
+- [ ] Unlike properties
+- [ ] Persistent favorites across sessions
+
+**🗺️ MAP INTEGRATION:**
+- [ ] Yandex Maps loads correctly
+- [ ] User location display
+- [ ] Property markers on map
+- [ ] Map zoom and navigation
+- [ ] Location search functionality
 
 ## 📈 Рекомендации по улучшению
 
