@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+# from contextlib import asynccontextmanager
 from typing import List, Optional
 import os
 import logging
@@ -35,20 +35,20 @@ from services import (
 
 load_dotenv()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    await connect_to_mongo()
-    await create_indexes()
-    yield
-    # Shutdown
-    await close_mongo_connection()
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Startup
+#     await connect_to_mongo()
+#     await create_indexes()
+#     yield
+#     # Shutdown
+#     await close_mongo_connection()
 
 app = FastAPI(
     title="Roommate Finder API",
     description="API for Telegram Web App roommate finder",
-    version="1.0.0",
-    lifespan=lifespan
+    version="1.0.0"
+    # lifespan=lifespan
 )
 
 # Configure CORS
