@@ -1,0 +1,108 @@
+# ===================================
+# NGROK КОНФИГУРАЦИЯ - ЦЕНТРАЛИЗОВАННЫЕ НАСТРОЙКИ
+# ===================================
+# Этот файл автоматически генерируется из .env файла
+# НЕ РЕДАКТИРУЙТЕ ВРУЧНУЮ - используйте .env для настройки
+
+version: "2"
+
+# Auth token загружается из переменной окружения NGROK_AUTH_TOKEN
+# Получите токен на: https://dashboard.ngrok.com/get-started/your-authtoken
+authtoken: ${NGROK_AUTH_TOKEN}
+
+# ===================================
+# ОСНОВНОЙ ТУННЕЛЬ ДЛЯ ПРИЛОЖЕНИЯ
+# ===================================
+tunnels:
+  roommate-app:
+    # Перенаправление на nginx (порт 80)
+    addr: ${NGROK_PORT:-80}
+    proto: ${NGROK_PROTOCOL:-http}
+    
+    # Регион ngrok сервера (us, eu, ap, au, sa, jp, in)
+    region: ${NGROK_REGION:-us}
+    
+    # НАСТРОЙКИ ЗАГОЛОВКОВ
+    request_header:
+      add:
+        # Важно для правильной работы с HTTPS
+        - "X-Forwarded-Proto: https"
+        - "X-Forwarded-Host: ${NGROK_HOSTNAME}"
+    
+    response_header:
+      add:
+        # Безопасность
+        - "X-Frame-Options: SAMEORIGIN"
+        - "X-Content-Type-Options: nosniff"
+        - "Referrer-Policy: strict-origin-when-cross-origin"
+    
+    # ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ (раскомментируйте при необходимости)
+    
+    # Пользовательский поддомен (требует платный план ngrok)
+    # subdomain: ${NGROK_SUBDOMAIN}
+    
+    # Пользовательский домен (требует платный план ngrok)  
+    # hostname: ${NGROK_HOSTNAME}
+    
+    # Basic Authentication (раскомментируйте для защиты паролем)
+    # auth: ${NGROK_BASIC_AUTH}
+    
+    # OAuth через Google (настройте в ngrok dashboard)
+    # oauth:
+    #   provider: google
+    #   allow_emails:
+    #     - your-email@gmail.com
+
+# ===================================
+# ДОПОЛНИТЕЛЬНЫЕ ТУННЕЛИ (ОПЦИОНАЛЬНО)
+# ===================================
+
+  # Прямой доступ к API (для отладки)
+  api-direct:
+    addr: 8001
+    proto: http
+    # Будет доступен на отдельном URL
+    
+  # Прямой доступ к frontend (для разработки)
+  frontend-direct:
+    addr: 3000
+    proto: http
+
+# ===================================
+# ИНСТРУКЦИИ ПО ИСПОЛЬЗОВАНИЮ
+# ===================================
+
+# 1. АВТОМАТИЧЕСКИЙ ЗАПУСК:
+#    ./start.sh start - автоматически настроит и запустит ngrok
+#    
+# 2. РУЧНОЙ ЗАПУСК:
+#    ngrok start roommate-app
+#    
+# 3. ЗАПУСК ВСЕХ ТУННЕЛЕЙ:
+#    ngrok start --all
+#    
+# 4. ПРОВЕРКА КОНФИГУРАЦИИ:
+#    ngrok config check
+#    
+# 5. ПРОСМОТР АКТИВНЫХ ТУННЕЛЕЙ:
+#    ngrok tunnels list
+#    
+# 6. NGROK WEB INTERFACE:
+#    http://127.0.0.1:4040 - веб интерфейс ngrok с логами и статистикой
+
+# ===================================
+# ПОЛУЧЕНИЕ ПУБЛИЧНОГО URL
+# ===================================
+
+# После запуска ngrok, ваш публичный URL будет выглядеть как:
+# https://abc123def456.ngrok-free.app
+# 
+# Этот URL автоматически:
+# - Обновляется в .env файле
+# - Настраивается в Telegram Bot
+# - Используется в React приложении
+# 
+# СТРУКТУРА URL:
+# - Главная: https://your-url.ngrok-free.app/
+# - API: https://your-url.ngrok-free.app/api/
+# - Health: https://your-url.ngrok-free.app/api/health

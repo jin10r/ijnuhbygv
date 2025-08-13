@@ -1,0 +1,98 @@
+/* Additional component styles */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.like-button {
+  transition: all 0.2s ease;
+}
+
+.like-button:active {
+  transform: scale(0.95);
+}
+
+.like-button.liked {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+}
+
+.like-button:not(.liked) {
+  background: linear-gradient(135deg, #74b9ff, #0984e3);
+}
+
+/* Map styles */
+.map-container {
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Profile form styles */
+.form-input {
+  background: var(--tg-theme-secondary-bg-color, #242f3d);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--tg-theme-text-color, #ffffff);
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  border-color: var(--tg-theme-button-color, #2481cc);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.1);
+}
+
+/* Loading spinner */
+.spinner {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-left: 2px solid var(--tg-theme-button-color, #2481cc);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Bottom navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--tg-theme-secondary-bg-color, #242f3d);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+}
+
+/* Property card styles */
+.property-card {
+  background: var(--tg-theme-secondary-bg-color, #242f3d);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.property-card:hover {
+  border-color: var(--tg-theme-button-color, #2481cc);
+}
+
+/* User card styles */
+.user-card {
+  background: var(--tg-theme-secondary-bg-color, #242f3d);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.user-card:hover {
+  border-color: var(--tg-theme-accent-text-color, #64b5ef);
+}

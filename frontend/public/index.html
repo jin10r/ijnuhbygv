@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#17212b" />
+    <meta
+      name="description"
+      content="Telegram Web App для поиска квартиры и соседей в Москве"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Telegram Web App Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <title>Поиск соседей - Roommate Finder</title>
+    
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--tg-theme-bg-color, #17212b);
+        color: var(--tg-theme-text-color, #ffffff);
+        overflow-x: hidden;
+      }
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: var(--tg-theme-bg-color, #17212b);
+      }
+      .spinner {
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-left: 2px solid var(--tg-theme-button-color, #2481cc);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Для работы приложения необходимо включить JavaScript.</noscript>
+    <div id="root">
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </body>
+</html>
