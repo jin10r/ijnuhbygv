@@ -60,7 +60,7 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Bottom navigation */
+/* Bottom navigation - fixed z-index issue */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -68,7 +68,9 @@
   right: 0;
   background: var(--tg-theme-secondary-bg-color, #242f3d);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 1000;
+  z-index: 999; /* Lower than modals but above content */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 /* Property card styles */
@@ -95,4 +97,18 @@
 
 .user-card:hover {
   border-color: var(--tg-theme-accent-text-color, #64b5ef);
+}
+
+/* Fix content padding to avoid navigation overlap */
+.page-content {
+  padding-bottom: 80px; /* Space for bottom navigation */
+}
+
+/* Modal z-index fix */
+.modal-backdrop {
+  z-index: 1000; /* Higher than navigation */
+}
+
+.modal-content {
+  z-index: 1001; /* Highest priority */
 }

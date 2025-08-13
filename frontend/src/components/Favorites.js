@@ -10,6 +10,7 @@ const Favorites = () => {
   const [filteredProperties, setFilteredProperties] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -28,7 +29,6 @@ const Favorites = () => {
       const data = await apiService.getLikedProperties(telegramUser.id);
       setProperties(data);
       setFilteredProperties(data);
-      applyFilters(data, filters);
     } catch (error) {
       console.error('Error fetching liked properties:', error);
     } finally {
@@ -65,14 +65,26 @@ const Favorites = () => {
       result = result.filter(p => p.metro_station === currentFilters.metroStation);
     }
     
-    setFilteredProperties(result);
+    return result;
   };
 
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
     const newFilters = { ...filters, [filterName]: value };
     setFilters(newFilters);
-    applyFilters(properties, newFilters);
+    const filtered = applyFilters(properties, newFilters);
+    setFilteredProperties(filtered);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      propertyType: '',
+      rooms: '',
+      minPrice: '',
+      maxPrice: '',
+      metroStation: ''
+    });
+    setFilteredProperties(properties);
   };
 
   const removeFromFavorites = async (propertyId) => {
@@ -99,6 +111,9 @@ const Favorites = () => {
       fetchLikedProperties();
     }
   }, [hasProfile, telegramUser]);
+
+  // Get unique metro stations from properties for filter
+  const uniqueMetroStations = [...new Set(properties.map(p => p.metro_station))];
 
   if (!hasProfile) {
     return (
@@ -130,99 +145,132 @@ const Favorites = () => {
     <div className="fixed inset-0 bg-telegram-bg flex flex-col">
       {/* Header */}
       <div className="bg-telegram-secondary p-4 shadow-lg flex-shrink-0 z-10">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-telegram-text">Избранное</h1>
-          <div className="text-sm text-telegram-text/70">
-            {properties.length} объявлений
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                showFilters 
+                  ? 'bg-telegram-button text-white' 
+                  : 'bg-telegram-bg text-telegram-text border border-telegram-text/20'
+              }`}
+            >
+              🔍 Фильтры
+            </button>
+            <div className="text-sm text-telegram-text/70">
+              {filteredProperties.length} из {properties.length}
+            </div>
           </div>
         </div>
         
-        {/* Filters */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {/* Property Type Filter */}
-          <select 
-            value={filters.propertyType}
-            onChange={(e) => handleFilterChange('propertyType', e.target.value)}
-            className="flex-1 min-w-[120px] bg-telegram-bg border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
-          >
-            <option value="">Тип жилья</option>
-            <option value="Студия">Студия</option>
-            <option value="1 комната">1 комната</option>
-            <option value="2 комнаты">2 комнаты</option>
-            <option value="3 комнаты">3 комнаты</option>
-            <option value="4+ комнат">4+ комнат</option>
-          </select>
-          
-          {/* Rooms Filter */}
-          <select 
-            value={filters.rooms}
-            onChange={(e) => handleFilterChange('rooms', e.target.value)}
-            className="flex-1 min-w-[80px] bg-telegram-bg border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
-          >
-            <option value="">Комнат</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4+</option>
-          </select>
-          
-          {/* Price Range Filter */}
-          <div className="flex gap-1 flex-1 min-w-[150px]">
-            <input
-              type="number"
-              placeholder="От"
-              value={filters.minPrice}
-              onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-              className="w-full bg-telegram-bg border border-telegram-text/20 rounded-lg px-2 py-2 text-telegram-text text-sm"
-            />
-            <input
-              type="number"
-              placeholder="До"
-              value={filters.maxPrice}
-              onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-              className="w-full bg-telegram-bg border border-telegram-text/20 rounded-lg px-2 py-2 text-telegram-text text-sm"
-            />
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="bg-telegram-bg rounded-lg p-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Property Type Filter */}
+              <select 
+                value={filters.propertyType}
+                onChange={(e) => handleFilterChange('propertyType', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              >
+                <option value="">Тип жилья</option>
+                <option value="apartment">Квартира</option>
+                <option value="room">Комната</option>
+                <option value="studio">Студия</option>
+              </select>
+              
+              {/* Rooms Filter */}
+              <select 
+                value={filters.rooms}
+                onChange={(e) => handleFilterChange('rooms', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              >
+                <option value="">Комнат</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+            
+            {/* Price Range Filter */}
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="number"
+                placeholder="Цена от"
+                value={filters.minPrice}
+                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              />
+              <input
+                type="number"
+                placeholder="Цена до"
+                value={filters.maxPrice}
+                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              />
+            </div>
+
+            {/* Metro Station Filter */}
+            {uniqueMetroStations.length > 0 && (
+              <select 
+                value={filters.metroStation}
+                onChange={(e) => handleFilterChange('metroStation', e.target.value)}
+                className="w-full bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+              >
+                <option value="">Все станции метро</option>
+                {uniqueMetroStations.map(station => (
+                  <option key={station} value={station}>{station}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Clear Filters Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm text-telegram-text/70 hover:text-telegram-text transition-colors"
+              >
+                Очистить фильтры
+              </button>
+            </div>
           </div>
-          
-          {/* Clear Filters Button */}
-          <button
-            onClick={() => {
-              setFilters({
-                propertyType: '',
-                rooms: '',
-                minPrice: '',
-                maxPrice: '',
-                metroStation: ''
-              });
-              setFilteredProperties(properties);
-            }}
-            className="bg-telegram-button/20 text-telegram-button px-3 py-2 rounded-lg text-sm hover:bg-telegram-button/30 transition-colors"
-          >
-            Сброс
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Properties List - Scrollable */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-20">
         {filteredProperties.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">❤️</div>
             <h3 className="text-lg font-medium text-telegram-text mb-2">
-              Нет избранных объявлений
+              {properties.length === 0 ? 'Нет избранных объявлений' : 'Нет объявлений по фильтрам'}
             </h3>
             <p className="text-telegram-text/70 text-sm mb-4">
-              Добавляйте понравившиеся объявления с карты
+              {properties.length === 0 
+                ? 'Добавляйте понравившиеся объявления с карты'
+                : 'Попробуйте изменить параметры фильтров'
+              }
             </p>
-            <button
-              onClick={() => window.location.href = '/'}
-              className="bg-telegram-button text-white px-6 py-3 rounded-lg font-medium hover:bg-telegram-accent transition-colors"
-            >
-              Перейти к карте
-            </button>
+            {properties.length === 0 ? (
+              <button
+                onClick={() => window.location.href = '/'}
+                className="bg-telegram-button text-white px-6 py-3 rounded-lg font-medium hover:bg-telegram-accent transition-colors"
+              >
+                Перейти к карте
+              </button>
+            ) : (
+              <button
+                onClick={clearFilters}
+                className="bg-telegram-button text-white px-6 py-3 rounded-lg font-medium hover:bg-telegram-accent transition-colors"
+              >
+                Очистить фильтры
+              </button>
+            )}
           </div>
         ) : (
-          <div className="space-y-4 pb-4">
+          <div className="space-y-4">
             {filteredProperties.map(property => (
               <div
                 key={property.id}
