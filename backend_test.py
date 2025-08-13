@@ -11,8 +11,8 @@ import os
 from datetime import datetime
 from typing import Dict, Any, List
 
-# Test configuration
-BASE_URL = "https://2d0e6f7ed04d.ngrok-free.app/api"  # From .env REACT_APP_BACKEND_URL
+# Test configuration - Use internal backend URL since ngrok is misconfigured
+BASE_URL = "http://localhost:8001/api"  # Direct backend connection
 TEST_USERS = [
     {
         "telegram_id": 123456789,
