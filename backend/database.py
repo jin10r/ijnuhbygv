@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017/roommate_app")
+MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/roommate_app")
 
 client: AsyncIOMotorClient = None
 
