@@ -395,11 +395,19 @@ class BackendTester:
         for user_data in TEST_USERS:
             await self.test_get_matches(user_data["telegram_id"])
         
-        # 7. Likes Tests (if we have created users)
-        if len(self.created_users) >= 2:
+        # 7. Likes Tests (test user-to-user likes)
+        if len(TEST_USERS) >= 2:
             user1_id = TEST_USERS[0]["telegram_id"]
-            user2_id = self.created_users[1]["id"]
-            await self.test_create_like(user1_id, user2_id, "user")
+            user2_id = TEST_USERS[1]["telegram_id"]
+            # Get user2's actual ID from the created users
+            user2_actual_id = None
+            for created_user in self.created_users:
+                if created_user.get("username") == TEST_USERS[1]["username"]:
+                    user2_actual_id = created_user["id"]
+                    break
+            
+            if user2_actual_id:
+                await self.test_create_like(user1_id, user2_actual_id, "user")
         
         # 8. User Matches Tests
         for user_data in TEST_USERS:
