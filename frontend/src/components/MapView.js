@@ -141,8 +141,15 @@ const MapView = () => {
 
     // Add new markers with price labels
     propertiesToAdd.forEach(property => {
-      // Create price label placemark
-      const pricePlacemark = new window.ymaps.Placemark(
+      // Format price for display
+      const priceDisplay = property.price >= 1000000 
+        ? `${Math.round(property.price / 1000000)}M₽`
+        : property.price >= 1000 
+          ? `${Math.round(property.price / 1000)}k₽`
+          : `${property.price}₽`;
+
+      // Create placemark with custom layout for price display
+      const placemark = new window.ymaps.Placemark(
         [property.latitude, property.longitude],
         {
           balloonContent: `
@@ -169,20 +176,44 @@ const MapView = () => {
           propertyId: property.id
         },
         {
-          iconLayout: 'default#imageWithContent',
-          iconImageHref: property.is_liked ? '/favicon.ico' : '/favicon.ico',
-          iconImageSize: [1, 1],
-          iconImageOffset: [0, 0],
-          iconContentOffset: [0, 0],
-          iconContent: `${Math.floor(property.price / 1000)}k₽`,
-          iconContentLayout: window.ymaps.templateLayoutFactory.createClass(
-            '<div style="background: #2481cc; color: white; padding: 2px 6px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">$[properties.iconContent]</div>'
-          )
+          iconLayout: window.ymaps.templateLayoutFactory.createClass(`
+            <div style="
+              position: relative;
+              background: ${property.is_liked ? '#ff4444' : '#2481cc'};
+              color: white;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: bold;
+              white-space: nowrap;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              border: 2px solid white;
+              min-width: 40px;
+              text-align: center;
+            ">
+              ${priceDisplay}
+              <div style="
+                position: absolute;
+                bottom: -6px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 6px solid ${property.is_liked ? '#ff4444' : '#2481cc'};
+              "></div>
+            </div>
+          `),
+          iconShape: {
+            type: 'Rectangle',
+            coordinates: [[-20, -15], [20, 5]]
+          }
         }
       );
       
-      mapRef.current.geoObjects.add(pricePlacemark);
-      markersRef.current.push(pricePlacemark);
+      mapRef.current.geoObjects.add(placemark);
+      markersRef.current.push(placemark);
     });
   }, []);
 
