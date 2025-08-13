@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Test configuration
-BASE_URL = "https://5d34527e95f5.ngrok-free.app/api"  # From .env REACT_APP_BACKEND_URL
+BASE_URL = "https://2d0e6f7ed04d.ngrok-free.app/api"  # From .env REACT_APP_BACKEND_URL
 TEST_USERS = [
     {
         "telegram_id": 123456789,
