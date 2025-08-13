@@ -52,7 +52,7 @@ const MapView = () => {
     const mapInstance = new window.ymaps.Map('map', {
       center: metroCoordinates,
       zoom: 13,
-      controls: ['zoomControl', 'fullscreenControl', 'geolocationControl']
+      controls: [] // Remove all controls
     });
 
     mapRef.current = mapInstance;
@@ -139,9 +139,10 @@ const MapView = () => {
     });
     markersRef.current = [];
 
-    // Add new markers
+    // Add new markers with price labels
     propertiesToAdd.forEach(property => {
-      const placemark = new window.ymaps.Placemark(
+      // Create price label placemark
+      const pricePlacemark = new window.ymaps.Placemark(
         [property.latitude, property.longitude],
         {
           balloonContent: `
@@ -168,12 +169,20 @@ const MapView = () => {
           propertyId: property.id
         },
         {
-          preset: property.is_liked ? 'islands#redCircleDotIcon' : 'islands#greenCircleDotIcon'
+          iconLayout: 'default#imageWithContent',
+          iconImageHref: property.is_liked ? '/favicon.ico' : '/favicon.ico',
+          iconImageSize: [1, 1],
+          iconImageOffset: [0, 0],
+          iconContentOffset: [0, 0],
+          iconContent: `${Math.floor(property.price / 1000)}k₽`,
+          iconContentLayout: window.ymaps.templateLayoutFactory.createClass(
+            '<div style="background: #2481cc; color: white; padding: 2px 6px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">$[properties.iconContent]</div>'
+          )
         }
       );
       
-      mapRef.current.geoObjects.add(placemark);
-      markersRef.current.push(placemark);
+      mapRef.current.geoObjects.add(pricePlacemark);
+      markersRef.current.push(pricePlacemark);
     });
   }, []);
 
@@ -393,67 +402,87 @@ const MapView = () => {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="bg-telegram-bg rounded-lg p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Property Type Filter */}
-              <select 
-                value={filters.propertyType}
-                onChange={(e) => handleFilterChange('propertyType', e.target.value)}
-                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
-              >
-                <option value="">Тип жилья</option>
-                <option value="apartment">Квартира</option>
-                <option value="room">Комната</option>
-                <option value="studio">Студия</option>
-              </select>
-              
-              {/* Rooms Filter */}
-              <select 
-                value={filters.rooms}
-                onChange={(e) => handleFilterChange('rooms', e.target.value)}
-                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
-              >
-                <option value="">Комнат</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4+</option>
-              </select>
-            </div>
-            
-            {/* Price Range Filter */}
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="number"
-                placeholder="Цена от"
-                value={filters.minPrice}
-                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
-              />
-              <input
-                type="number"
-                placeholder="Цена до"
-                value={filters.maxPrice}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                className="bg-telegram-secondary border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
-              />
-            </div>
-
-            {/* Clear Filters Button */}
-            <div className="flex justify-end">
+      {/* Filters Modal */}
+      {showFilters && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-telegram-secondary rounded-lg p-4 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-telegram-text">Фильтры</h3>
               <button
-                onClick={clearFilters}
-                className="px-4 py-2 text-sm text-telegram-text/70 hover:text-telegram-text transition-colors"
+                onClick={() => setShowFilters(false)}
+                className="text-telegram-text/70 hover:text-telegram-text text-xl"
               >
-                Очистить фильтры
+                ×
               </button>
             </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Property Type Filter */}
+                <select 
+                  value={filters.propertyType}
+                  onChange={(e) => handleFilterChange('propertyType', e.target.value)}
+                  className="bg-telegram-bg border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+                >
+                  <option value="">Тип жилья</option>
+                  <option value="apartment">Квартира</option>
+                  <option value="room">Комната</option>
+                  <option value="studio">Студия</option>
+                </select>
+                
+                {/* Rooms Filter */}
+                <select 
+                  value={filters.rooms}
+                  onChange={(e) => handleFilterChange('rooms', e.target.value)}
+                  className="bg-telegram-bg border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+                >
+                  <option value="">Комнат</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+              
+              {/* Price Range Filter */}
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  placeholder="Цена от"
+                  value={filters.minPrice}
+                  onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                  className="bg-telegram-bg border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Цена до"
+                  value={filters.maxPrice}
+                  onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                  className="bg-telegram-bg border border-telegram-text/20 rounded-lg px-3 py-2 text-telegram-text text-sm"
+                />
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={clearFilters}
+                  className="flex-1 px-4 py-2 text-sm text-telegram-text/70 hover:text-telegram-text transition-colors border border-telegram-text/20 rounded-lg"
+                >
+                  Очистить
+                </button>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="flex-1 px-4 py-2 bg-telegram-button text-white rounded-lg font-medium hover:bg-telegram-accent transition-colors"
+                >
+                  Применить
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Map Container - Full Screen */}
       <div className="absolute top-32 left-0 right-0 bottom-16">

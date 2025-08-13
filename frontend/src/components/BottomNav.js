@@ -24,9 +24,16 @@ const BottomNav = () => {
     },
     {
       path: '/favorites',
-      icon: '❤️',
+      icon: (
+        <div className="relative">
+          <div className="w-6 h-6 border-2 border-current rounded-sm flex items-center justify-center">
+            <div className="text-red-500 text-xs">❤️</div>
+          </div>
+        </div>
+      ),
       label: 'Избранное',
-      name: 'favorites'
+      name: 'favorites',
+      isCustomIcon: true
     },
     {
       path: '/profile',
@@ -63,6 +70,8 @@ const BottomNav = () => {
                   alt="Profile"
                   className="w-6 h-6 rounded-full mb-1"
                 />
+              ) : item.isCustomIcon ? (
+                <div className="mb-1">{item.icon}</div>
               ) : (
                 <span className="text-lg mb-1">{item.icon}</span>
               )}
