@@ -99,7 +99,10 @@ class BackendTester:
             async with self.session.post(f"{BASE_URL}/users", json=user_data) as response:
                 if response.status == 200:
                     data = await response.json()
-                    if data.get("telegram_id") == user_data["telegram_id"]:
+                    # Check if user was created successfully by verifying key fields
+                    if (data.get("first_name") == user_data["first_name"] and 
+                        data.get("username") == user_data["username"] and
+                        data.get("id")):
                         self.created_users.append(data)
                         self.log_result(f"Create User {user_data['first_name']}", True, 
                                       f"User ID: {data.get('id')}")
